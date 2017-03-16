@@ -83,9 +83,9 @@ void *producer_launcher(void *threadid)
     rd_kafka_topic_t *rkt;
     unsigned long counter=0;
     char errstr[512];
-    char *brokers="10.11.108.11:9092,10.11.108.12:9092,10.11.108.13:9092";
-    char *topic="FAULT_EVENT";
-    int partition=3;
+    char *brokers="localhost:9092";
+    char *topic="FAILURE_EVENT";
+    int partition=RD_KAFKA_PARTITION_UA;
     long messageCounter=0;
     pthread_t tid = pthread_self();
     printf("POSIX thread id is %d\n", tid);
@@ -94,15 +94,15 @@ void *producer_launcher(void *threadid)
 
     // KAFKA CONF              
         conf = rd_kafka_conf_new(); 
-        rd_kafka_conf_set_log_cb(conf, logger);
+       // rd_kafka_conf_set_log_cb(conf, logger);
         /* producer config */
        // rd_kafka_conf_set(conf, "queue.buffering.max.messages", "600000", NULL, 0);
        //rd_kafka_conf_set(conf, "message.send.max.retries", "3", NULL, 0);
        // rd_kafka_conf_set(conf, "retry.backoff.ms", "1000", NULL, 0);
-        rd_kafka_conf_set(conf, "socket.keepalive.enable", "true", NULL, 0);
+       // rd_kafka_conf_set(conf, "socket.keepalive.enable", "true", NULL, 0);
        // rd_kafka_conf_set(conf, "request.required.acks", "0", NULL, 0);
        // rd_kafka_conf_set(conf, "queue.buffering.max.ms", "1000", NULL, 0);
-        rd_kafka_conf_set(conf, "batch.num.messages", "0", NULL, 0);
+       // rd_kafka_conf_set(conf, "batch.num.messages", "0", NULL, 0);
                                           
         topic_conf = rd_kafka_topic_conf_new();
                                                  
@@ -127,8 +127,9 @@ void *producer_launcher(void *threadid)
         messageCounter++;
         sprintf(buf, "MESSAGE FROM PRODUCER (%d)", messageCounter);
         size_t len = strlen(buf);
-        if (buf[len - 1] == '\n')
+        /*if (buf[len - 1] == '\n')
         buf[--len] = '\0'; 
+         */
         
         /* send/produce message. */
       
@@ -145,12 +146,12 @@ void *producer_launcher(void *threadid)
           printf("Produce return code: %d\n", prod_result);
 
                 if (prod_result == -1) {
-                    printf("Error on rd_kafka_produce function call\n");
+                    printf("Error on rd_kafka_produce function call %s\n",rd_kafka_err2str(rd_kafka_last_error()));
 
                     /* Poll to handle delivery reports */
-                   // rd_kafka_poll(rk, 0);
+                    rd_kafka_poll(rk, 0);
                    // run=0;
-                   // continue;
+                   break;
                 }
         printf("Sent...");
         printf("%% Sent %zd bytes to topic "
@@ -160,8 +161,8 @@ void *producer_launcher(void *threadid)
         printf("My Process Id: %d\n",sid);
         printf("Brokers are %s\n",brokers);
         /* Poll to handle delivery reports */
-        //rd_kafka_poll(rk, 0);
-        sleep(10);
+        rd_kafka_poll(rk, 0);
+        sleep(1);
     }
 
     /* Poll to handle delivery reports */
